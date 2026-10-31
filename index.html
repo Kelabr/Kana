@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1c1a4d">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Kana">
+<title>Kana – treino</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500&display=swap">
+<style>
+:root{--bg:#EEF2F5;--card:#fff;--ink:#1F2A44;--mute:#5E6B85;--line:#CBD5E1;--ok:#1F7A5C;--okbg:#DDF3EA;--bad:#B3392F;--badbg:#FBE4E1;--acc:#2B3A67;--accink:#fff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0F1524;--card:#1A2236;--ink:#E6EBF5;--mute:#93A0BC;--line:#33405C;--ok:#5FD1A5;--okbg:#14382D;--bad:#FF8A7D;--badbg:#44201C;--acc:#9DB2FF;--accink:#0F1524}}
+:root[data-theme="dark"]{--bg:#0F1524;--card:#1A2236;--ink:#E6EBF5;--mute:#93A0BC;--line:#33405C;--ok:#5FD1A5;--okbg:#14382D;--bad:#FF8A7D;--badbg:#44201C;--acc:#9DB2FF;--accink:#0F1524}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:480px;margin:0 auto;padding:16px;min-height:100vh;display:flex;flex-direction:column;gap:16px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:4px;gap:4px}
+.seg button{border:0;background:none;color:var(--mute);padding:10px 4px;border-radius:9px;font:inherit;font-size:15px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--acc);color:var(--accink)}
+.row{display:flex;justify-content:space-between;align-items:center;font-size:14px;color:var(--mute)}
+.row label{display:flex;gap:8px;align-items:center;cursor:pointer}
+.stats{display:flex;gap:16px}
+.stats b{color:var(--ink);font-size:18px}
+.glyph{flex:1;display:flex;align-items:center;justify-content:center;background:var(--card);border:1px solid var(--line);border-radius:20px;min-height:200px;font-family:"Noto Sans JP","Hiragino Sans","Yu Gothic",system-ui,sans-serif;font-size:clamp(96px,32vw,150px);line-height:1}
+.glyph.ok{background:var(--okbg);border-color:var(--ok)}
+.glyph.bad{background:var(--badbg);border-color:var(--bad)}
+.ask{margin:0;text-align:center;color:var(--mute);font-size:15px}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.opts button{font:inherit;font-size:24px;padding:18px 8px;border-radius:14px;border:2px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+.opts button:focus-visible,.seg button:focus-visible,.next:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.opts button.ok{border-color:var(--ok);background:var(--okbg);color:var(--ok)}
+.opts button.bad{border-color:var(--bad);background:var(--badbg);color:var(--bad)}
+.msg{min-height:48px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:17px}
+.msg.ok{color:var(--ok)}.msg.bad{color:var(--bad)}
+.next{font:inherit;font-size:16px;border:0;border-radius:12px;padding:12px 22px;background:var(--acc);color:var(--accink);cursor:pointer}
+.reset{align-self:center;border:0;background:none;color:var(--mute);font:inherit;font-size:13px;text-decoration:underline;cursor:pointer}
+@media (prefers-reduced-motion:no-preference){.opts button,.glyph{transition:background .15s,border-color .15s}}
+</style>
+</head>
+<body>
+<main>
+  <div class="seg" role="group" aria-label="Escrita">
+    <button data-m="h" aria-pressed="true">Hiragana</button>
+    <button data-m="k" aria-pressed="false">Katakana</button>
+    <button data-m="hk" aria-pressed="false">Os dois</button>
+  </div>
+  <div class="row">
+    <label><input type="checkbox" id="dak"> Incluir が, ぱ…</label>
+    <div class="stats"><span>Acertos <b id="sOk">0</b></span><span>Erros <b id="sBad">0</b></span><span>Sequência <b id="sStr">0</b></span></div>
+  </div>
+  <div class="glyph" id="glyph" aria-live="polite"></div>
+  <p class="ask">Qual é a leitura?</p>
+  <div class="opts" id="opts"></div>
+  <div class="msg" id="msg"></div>
+  <button class="reset" id="reset">Zerar progresso</button>
+</main>
+<script>
+const B="a i u e o ka ki ku ke ko sa shi su se so ta chi tsu te to na ni nu ne no ha hi fu he ho ma mi mu me mo ya yu yo ra ri ru re ro wa wo n".split(" ");
+const BH=Array.from("あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん");
+const BK=Array.from("アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン");
+const D="ga gi gu ge go za ji zu ze zo da de do ba bi bu be bo pa pi pu pe po".split(" ");
+const DH=Array.from("がぎぐげござじずぜぞだでどばびぶべぼぱぴぷぺぽ");
+const DK=Array.from("ガギグゲゴザジズゼゾダデドバビブベボパピプペポ");
+
+const $=id=>document.getElementById(id);
+let mode="h",dak=false,cur=null,last=null,locked=false,timer=null;
+let st={ok:0,bad:0,str:0,miss:{},mode:"h",dak:false};
+try{const raw=localStorage.getItem("kana-v1");if(raw)st=Object.assign(st,JSON.parse(raw))}catch(e){}
+mode=st.mode;dak=st.dak;
+function save(){try{localStorage.setItem("kana-v1",JSON.stringify(Object.assign(st,{mode,dak})))}catch(e){}}
+
+function pool(){
+  const out=[];
+  const add=(r,h,k)=>r.forEach((x,i)=>{if(mode!=="k")out.push({s:h[i],r:x});if(mode!=="h")out.push({s:k[i],r:x})});
+  add(B,BH,BK);
+  if(dak)add(D,DH,DK);
+  return out;
+}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function pick(p){
+  const c=p.filter(x=>x.s!==last);
+  const w=c.map(x=>1+2*(st.miss[x.s]||0));
+  let t=Math.random()*w.reduce((a,b)=>a+b,0);
+  for(let i=0;i<c.length;i++){t-=w[i];if(t<=0)return c[i]}
+  return c[c.length-1];
+}
+function render(){
+  $("sOk").textContent=st.ok;$("sBad").textContent=st.bad;$("sStr").textContent=st.str;
+  document.querySelectorAll(".seg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.m===mode));
+  $("dak").checked=dak;
+}
+function next(){
+  clearTimeout(timer);locked=false;
+  const p=pool();cur=pick(p);last=cur.s;
+  const romaji=[...new Set(p.map(x=>x.r))].filter(r=>r!==cur.r);
+  const opts=shuffle([cur.r,...shuffle(romaji).slice(0,3)]);
+  $("glyph").textContent=cur.s;$("glyph").className="glyph";
+  $("msg").className="msg";$("msg").innerHTML="";
+  $("opts").innerHTML="";
+  opts.forEach((r,i)=>{
+    const b=document.createElement("button");
+    b.textContent=r;b.dataset.r=r;b.setAttribute("aria-label","Opção "+(i+1)+": "+r);
+    b.onclick=()=>answer(b);$("opts").appendChild(b);
+  });
+  render();
+}
+function answer(btn){
+  if(locked)return;locked=true;
+  const right=btn.dataset.r===cur.r;
+  const msg=$("msg");
+  if(right){
+    st.ok++;st.str++;st.miss[cur.s]=Math.max(0,(st.miss[cur.s]||0)-1);
+    btn.classList.add("ok");$("glyph").classList.add("ok");
+    msg.className="msg ok";msg.textContent="Certo!";
+    timer=setTimeout(next,800);
+  }else{
+    st.bad++;st.str=0;st.miss[cur.s]=Math.min(5,(st.miss[cur.s]||0)+1);
+    btn.classList.add("bad");$("glyph").classList.add("bad");
+    document.querySelectorAll(".opts button").forEach(b=>{if(b.dataset.r===cur.r)b.classList.add("ok")});
+    msg.className="msg bad";
+    msg.innerHTML="<span>Era “"+cur.r+"”.</span>";
+    const n=document.createElement("button");n.className="next";n.textContent="Continuar";n.onclick=next;
+    msg.appendChild(n);n.focus();
+  }
+  save();render();
+}
+document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{mode=b.dataset.m;save();next()});
+$("dak").onchange=e=>{dak=e.target.checked;save();next()};
+$("reset").onclick=()=>{st={ok:0,bad:0,str:0,miss:{},mode,dak};save();next()};
+document.addEventListener("keydown",e=>{
+  const n=parseInt(e.key,10);
+  if(n>=1&&n<=4){const b=$("opts").children[n-1];if(b)b.click()}
+});
+if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}))}
+next();
+</script>
+</body>
+</html>

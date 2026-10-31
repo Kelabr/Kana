@@ -1,0 +1,14 @@
+Kana – treino (PWA)
+
+Arquivos: index.html, manifest.webmanifest, sw.js, pasta icons/.
+Mantenha todos juntos na mesma pasta.
+
+Publicar (precisa de HTTPS):
+- Netlify: arraste a pasta em app.netlify.com/drop
+- GitHub Pages: envie os arquivos para um repositório e ative Pages
+
+Instalar:
+- Android (Chrome): menu > Instalar app
+- iPhone (Safari): Compartilhar > Adicionar à Tela de Início
+
+Ao mudar algum arquivo, troque "kana-v2" em sw.js (ex.: kana-v2) para o celular pegar a versão nova.
